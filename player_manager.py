@@ -21,10 +21,12 @@ class PlayerProcessManager:
         self.p = Process(target=self.handle, args=(idx, path, self.input, self.output))
         self.p.start()
 
+        self.works = True
         try:
-            self.name = self.output.get(timeout=200)
+            self.name = self.output.get(timeout=1)
         except Empty:
             self.name = "[Failed to load %s]" % path
+            self.works = False
 
     def __str__(self) -> str:
         return self.name
@@ -32,6 +34,8 @@ class PlayerProcessManager:
     @staticmethod
     def handle(idx, path, input: Queue, output: Queue):
         module = import_player_module(idx, path)
+        if not module:
+            return
         player = module.Robot()
         name = str(player)
         output.put(name)
@@ -40,7 +44,7 @@ class PlayerProcessManager:
 
         while True:
             try:
-                message: Union[Point, int] = input.get(timeout=10)
+                message: Union[Point, int] = input.get(timeout=20)
             except Empty:
                 print("\t", "Timeout", name)
                 return
@@ -84,27 +88,22 @@ class PlayerProcessManager:
 
 
 def import_player_module(idx: int, player_path: str):
-    player_module = SourceFileLoader("player-%d" % idx, player_path).load_module()
+    try:
+        player_module = SourceFileLoader("player-%d" % idx, player_path).load_module()
+    except:
+        return None
     return player_module
-
-
-def import_player_modules():
-    player_modules = []
-    for idx, file_path in enumerate(pathlib.Path('players').glob('**/*.py')):
-        path = str(file_path.absolute())
-        pm = import_player_module(idx, player_path=path)
-        player_modules.append(pm)
-    return player_modules
 
 
 def import_players() -> List[PlayerProcessManager]:
     players = []
     for idx, file_path in enumerate(pathlib.Path('players').glob('**/*.py')):
-        if idx > 3: break
         path = str(file_path.absolute())
         pm = PlayerProcessManager(idx, path)
-        players.append(pm)
-
+        if pm.works:
+            players.append(pm)
+        else:
+            print("fail:", path)
     return players
 
 
