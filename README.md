@@ -1,3 +1,9 @@
+# GUI info
+
+add players to the player folder
+
+press ENTER to start/pause and ESC to close
+
 # Mission briefing
 
 Fred has a reaaaaally dirty room.
